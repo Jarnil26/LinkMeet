@@ -1,0 +1,243 @@
+<div class="dashboard">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="8" fill="url(#dashGrad)"/>
+          <path d="M10 12L16 8L22 12V20L16 24L10 20V12Z" stroke="white" stroke-width="2" fill="none"/>
+          <circle cx="16" cy="16" r="3" fill="white"/>
+          <defs><linearGradient id="dashGrad" x1="0" y1="0" x2="32" y2="32">
+            <stop stop-color="#4f46e5"/><stop offset="1" stop-color="#7c3aed"/>
+          </linearGradient></defs>
+        </svg>
+        <span class="logo-text">LinkMeet</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a class="nav-item active">
+        <span class="nav-icon">📊</span> Dashboard
+      </a>
+      <a class="nav-item" (click)="activeTab = 'upcoming'">
+        <span class="nav-icon">📅</span> Meetings
+      </a>
+      <a class="nav-item" (click)="activeTab = 'past'">
+        <span class="nav-icon">📜</span> History
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-avatar">{{ auth.currentUser?.displayName?.charAt(0) || '?' }}</div>
+        <div class="user-details">
+          <span class="user-name">{{ auth.currentUser?.displayName }}</span>
+          <span class="user-email">{{ auth.currentUser?.email }}</span>
+        </div>
+      </div>
+      <button class="btn btn-sm btn-secondary" (click)="logout()">Logout</button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <header class="content-header">
+      <div>
+        <h1>Welcome, {{ auth.currentUser?.displayName }} 👋</h1>
+        <p class="text-secondary">Manage your meetings and start collaborating</p>
+      </div>
+      <div class="header-actions">
+        <div class="join-group">
+          <input type="text" [(ngModel)]="joinCode" placeholder="Enter meeting code (e.g. 123-456-7890)" class="form-control" (keyup.enter)="joinMeeting()" />
+          <button class="btn btn-secondary" (click)="joinMeeting()">Join</button>
+        </div>
+        <button class="btn btn-primary" (click)="startInstantMeeting()">⚡ New Meeting</button>
+        <button class="btn btn-secondary" (click)="showCreateModal = true">📅 Schedule</button>
+      </div>
+    </header>
+
+    @if (joinError) {
+      <div class="error-banner animate-fadeIn">
+        <span>❌ {{ joinError }}</span>
+        <button class="close-btn" (click)="joinError = ''">✕</button>
+      </div>
+    }
+
+    <!-- Quick Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon blue">📹</div>
+        <div><div class="stat-value">{{ upcomingMeetings.length }}</div><div class="stat-label">Upcoming</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon purple">📊</div>
+        <div><div class="stat-value">{{ pastMeetings.length }}</div><div class="stat-label">Past</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green">⚡</div>
+        <div><div class="stat-value">{{ upcomingMeetings.length + pastMeetings.length }}</div><div class="stat-label">Total</div></div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab" [class.active]="activeTab === 'upcoming'" (click)="activeTab = 'upcoming'">Upcoming</button>
+      <button class="tab" [class.active]="activeTab === 'past'" (click)="activeTab = 'past'">History</button>
+    </div>
+
+    <!-- Meeting List -->
+    <div class="meetings-list">
+      @if (activeTab === 'upcoming') {
+        @if (upcomingMeetings.length === 0) {
+          <div class="empty-state">
+            <div class="empty-icon">📅</div>
+            <h3>No upcoming meetings</h3>
+            <p>Create a new meeting or join one using a meeting code.</p>
+            <button class="btn btn-primary" (click)="showCreateModal = true">Create Meeting</button>
+          </div>
+        }
+        @for (meeting of upcomingMeetings; track meeting.id) {
+          <div class="meeting-card" (click)="openMeeting(meeting)">
+            <div class="meeting-info">
+              <h3>{{ meeting.title }}</h3>
+              <div class="meeting-meta">
+                <span class="meeting-code" (click)="copyMeetingCode(meeting.meetingCode, $event)" title="Click to copy">
+                  🔗 {{ meeting.meetingCode }}
+                  <span class="copy-icon">{{ copiedText === meeting.meetingCode ? '✅' : '📋' }}</span>
+                </span>
+                <span class="badge" [ngClass]="getStatusBadgeClass(meeting.status)">{{ meeting.status }}</span>
+                @if (meeting.isPasswordProtected) {
+                  <span class="badge badge-warning">🔒 Protected</span>
+                }
+              </div>
+              <p class="meeting-time">
+                @if (meeting.scheduledAt) {
+                  📅 {{ meeting.scheduledAt | date:'medium' }}
+                } @else {
+                  ⚡ Instant Meeting
+                }
+                · 👥 {{ meeting.participantCount }} participant(s)
+              </p>
+            </div>
+            <div class="meeting-actions">
+              <button class="btn btn-primary btn-sm" (click)="openMeeting(meeting); $event.stopPropagation()">Join</button>
+              <button class="btn btn-secondary btn-sm" (click)="copyMeetingCode(meeting.meetingCode, $event)" title="Copy code">
+                {{ copiedText === meeting.meetingCode ? '✅ Copied!' : '📋 Copy Code' }}
+              </button>
+              @if (meeting.hostId === auth.currentUser?.id) {
+                <button class="btn btn-danger btn-sm" (click)="cancelMeeting(meeting.id, $event)">Cancel</button>
+              }
+            </div>
+          </div>
+        }
+      }
+
+      @if (activeTab === 'past') {
+        @if (pastMeetings.length === 0) {
+          <div class="empty-state">
+            <div class="empty-icon">📜</div>
+            <h3>No past meetings</h3>
+            <p>Your meeting history will appear here.</p>
+          </div>
+        }
+        @for (meeting of pastMeetings; track meeting.id) {
+          <div class="meeting-card past">
+            <div class="meeting-info">
+              <h3>{{ meeting.title }}</h3>
+              <div class="meeting-meta">
+                <span class="meeting-code">{{ meeting.meetingCode }}</span>
+                <span class="badge" [ngClass]="getStatusBadgeClass(meeting.status)">{{ meeting.status }}</span>
+              </div>
+              <p class="meeting-time">{{ meeting.createdAt | date:'medium' }} · 👥 {{ meeting.participantCount }}</p>
+            </div>
+          </div>
+        }
+      }
+    </div>
+  </main>
+
+  <!-- Create Meeting Modal -->
+  @if (showCreateModal) {
+    <div class="modal-overlay" (click)="showCreateModal = false">
+      <div class="modal animate-slideUp" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>Schedule Meeting</h2>
+          <button class="close-btn" (click)="showCreateModal = false">✕</button>
+        </div>
+        @if (createError) {
+          <div class="error-alert">{{ createError }}</div>
+        }
+        <form (ngSubmit)="createMeeting()">
+          <div class="form-group">
+            <label>Meeting Title</label>
+            <input type="text" class="form-control" [(ngModel)]="newMeeting.title" name="title" placeholder="Team Standup" />
+          </div>
+          <div class="form-group">
+            <label>Date & Time (optional)</label>
+            <input type="datetime-local" class="form-control" [(ngModel)]="newMeeting.scheduledAt" name="scheduledAt" />
+          </div>
+          <div class="form-group">
+            <label>Password (optional)</label>
+            <input type="text" class="form-control" [(ngModel)]="newMeeting.password" name="password" placeholder="Leave blank for no password" />
+          </div>
+          <div class="form-group checkbox-group">
+            <label>
+              <input type="checkbox" [(ngModel)]="newMeeting.hasWaitingRoom" name="hasWaitingRoom" />
+              Enable waiting room
+            </label>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" (click)="showCreateModal = false">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create Meeting</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- Invite / Share Meeting Modal -->
+  @if (showInviteModal && createdMeeting) {
+    <div class="modal-overlay" (click)="goToMeetingRoom()">
+      <div class="modal invite-modal animate-slideUp" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>🎉 Meeting Created!</h2>
+          <button class="close-btn" (click)="goToMeetingRoom()">✕</button>
+        </div>
+
+        <div class="invite-content">
+          <p class="invite-subtitle">Share this code with others so they can join:</p>
+
+          <div class="invite-code-box">
+            <span class="invite-code">{{ createdMeeting.meetingCode }}</span>
+            <button class="btn btn-sm btn-secondary" (click)="copyMeetingCode(createdMeeting.meetingCode)">
+              {{ copiedText === createdMeeting.meetingCode ? '✅ Copied!' : '📋 Copy Code' }}
+            </button>
+          </div>
+
+          <div class="invite-details">
+            <div class="invite-detail-row">
+              <span class="label">Title:</span>
+              <span>{{ createdMeeting.title }}</span>
+            </div>
+            @if (createdMeeting.isPasswordProtected) {
+              <div class="invite-detail-row">
+                <span class="label">🔒</span>
+                <span>Password protected</span>
+              </div>
+            }
+          </div>
+
+          <button class="btn btn-secondary btn-block mt-2" (click)="copyInviteLink()">
+            {{ copiedText === 'invite' ? '✅ Copied!' : '📨 Copy Full Invite' }}
+          </button>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-primary btn-lg" (click)="goToMeetingRoom()">
+            🚀 Join Meeting Now
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

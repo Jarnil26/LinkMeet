@@ -1,0 +1,6 @@
+@LinkMeet.API_HostAddress = http://localhost:5048
+
+GET {{LinkMeet.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

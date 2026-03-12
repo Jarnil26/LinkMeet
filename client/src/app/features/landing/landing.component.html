@@ -1,0 +1,155 @@
+<div class="landing">
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+            <rect width="32" height="32" rx="8" fill="url(#grad)"/>
+            <path d="M10 12L16 8L22 12V20L16 24L10 20V12Z" stroke="white" stroke-width="2" fill="none"/>
+            <circle cx="16" cy="16" r="3" fill="white"/>
+            <defs><linearGradient id="grad" x1="0" y1="0" x2="32" y2="32">
+              <stop stop-color="#4f46e5"/><stop offset="1" stop-color="#7c3aed"/>
+            </linearGradient></defs>
+          </svg>
+        </div>
+        <span class="logo-text">LinkMeet</span>
+      </div>
+      <div class="nav-links">
+        @if (auth.isLoggedIn) {
+          <a routerLink="/dashboard" class="btn btn-primary">Dashboard</a>
+        } @else {
+          <a routerLink="/login" class="nav-link">Sign In</a>
+          <a routerLink="/register" class="btn btn-primary">Get Started</a>
+        }
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-content">
+      <div class="hero-badge animate-fadeIn">🚀 Next-Gen Video Meetings</div>
+      <h1 class="hero-title animate-slideUp">
+        Connect. Collaborate.<br/>
+        <span class="gradient-text">Meet Seamlessly.</span>
+      </h1>
+      <p class="hero-subtitle animate-slideUp">
+        Experience crystal-clear video meetings with powerful collaboration tools.
+        Host, join, and manage meetings effortlessly.
+      </p>
+      <div class="hero-actions animate-slideUp">
+        @if (auth.isLoggedIn) {
+          <a routerLink="/dashboard" class="btn btn-primary btn-lg">Go to Dashboard</a>
+        } @else {
+          <a routerLink="/register" class="btn btn-primary btn-lg">Start for Free</a>
+        }
+        <div class="join-input-group">
+          <input
+            type="text"
+            [(ngModel)]="meetingCode"
+            placeholder="Enter meeting code"
+            class="join-input"
+            (keyup.enter)="joinMeeting()"
+          />
+          <button class="btn btn-secondary" (click)="joinMeeting()">Join</button>
+        </div>
+      </div>
+      @if (error) {
+        <p class="error-text mt-2">{{ error }}</p>
+      }
+    </div>
+    <div class="hero-visual animate-slideUp">
+      <div class="mock-meeting-window">
+        <div class="mock-titlebar">
+          <div class="mock-dots">
+            <span class="dot red"></span>
+            <span class="dot yellow"></span>
+            <span class="dot green"></span>
+          </div>
+          <span class="mock-title">LinkMeet — Team Standup</span>
+        </div>
+        <div class="mock-video-grid">
+          <div class="mock-video"><div class="mock-avatar">👩‍💻</div><span>Sarah</span></div>
+          <div class="mock-video"><div class="mock-avatar">👨‍💼</div><span>James</span></div>
+          <div class="mock-video"><div class="mock-avatar">👩‍🎨</div><span>Emily</span></div>
+          <div class="mock-video"><div class="mock-avatar">👨‍🔬</div><span>Mark</span></div>
+        </div>
+        <div class="mock-controls">
+          <span class="control-btn">🎤</span>
+          <span class="control-btn">📷</span>
+          <span class="control-btn">🖥️</span>
+          <span class="control-btn end">📞</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="features" id="features">
+    <h2 class="section-title">Why Choose <span class="gradient-text">LinkMeet</span>?</h2>
+    <p class="section-subtitle">Everything you need for productive meetings, all in one place.</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">📹</div>
+        <h3>HD Video & Audio</h3>
+        <p>Crystal-clear video with studio-quality audio for seamless communication.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🖥️</div>
+        <h3>Screen Sharing</h3>
+        <p>Share your entire screen, window, or browser tab with a single click.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💬</div>
+        <h3>Real-time Chat</h3>
+        <p>In-meeting chat with emojis, file sharing, and message history.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3>Secure Meetings</h3>
+        <p>End-to-end encryption, password protection, and waiting rooms.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📅</div>
+        <h3>Schedule Ahead</h3>
+        <p>Plan your meetings in advance and share invites effortlessly.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">👥</div>
+        <h3>Host Controls</h3>
+        <p>Mute participants, manage access, and control your meeting flow.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta">
+    <div class="cta-inner">
+      <h2>Ready to get started?</h2>
+      <p>Join thousands of teams using LinkMeet for their daily meetings.</p>
+      <a routerLink="/register" class="btn btn-primary btn-lg">Create Free Account</a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+            <rect width="32" height="32" rx="8" fill="url(#grad2)"/>
+            <path d="M10 12L16 8L22 12V20L16 24L10 20V12Z" stroke="white" stroke-width="2" fill="none"/>
+            <circle cx="16" cy="16" r="3" fill="white"/>
+            <defs><linearGradient id="grad2" x1="0" y1="0" x2="32" y2="32">
+              <stop stop-color="#4f46e5"/><stop offset="1" stop-color="#7c3aed"/>
+            </linearGradient></defs>
+          </svg>
+        </div>
+        <span class="logo-text">LinkMeet</span>
+      </div>
+      <p class="footer-text">© 2026 LinkMeet. All rights reserved.</p>
+    </div>
+  </footer>
+</div>

@@ -1,0 +1,233 @@
+<div class="meeting-room">
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="logo-mini">
+        <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="8" fill="url(#mGrad)"/>
+          <path d="M10 12L16 8L22 12V20L16 24L10 20V12Z" stroke="white" stroke-width="2" fill="none"/>
+          <circle cx="16" cy="16" r="3" fill="white"/>
+          <defs><linearGradient id="mGrad" x1="0" y1="0" x2="32" y2="32">
+            <stop stop-color="#4f46e5"/><stop offset="1" stop-color="#7c3aed"/>
+          </linearGradient></defs>
+        </svg>
+      </div>
+      <div class="meeting-title">{{ meeting?.title || 'Meeting' }}</div>
+      <button class="code-badge" (click)="copyMeetingCode()" title="Click to copy meeting code">
+        <span class="code-text">{{ meeting?.meetingCode }}</span>
+        <span class="code-action">{{ copied ? '✅' : '📋' }}</span>
+      </button>
+    </div>
+    <div class="topbar-center">
+      <div class="timer-badge">
+        <span class="rec-dot"></span>
+        <span>{{ elapsedTime }}</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="invite-btn" (click)="copyInviteLink()">
+        {{ copiedInvite ? '✅ Copied!' : '📨 Invite' }}
+      </button>
+      <div class="participant-badge">👥 {{ getTotalParticipants() }}</div>
+    </div>
+  </div>
+
+  <!-- Video Area -->
+  <div class="video-area" [class.with-panel]="showChat || showParticipants">
+    <div class="video-grid" [ngClass]="getGridClass()">
+
+      <!-- Local Video Tile -->
+      <div class="video-tile local-tile" [class.spotlight]="getTotalParticipants() === 1">
+        <!-- Video element is ALWAYS present, just hidden when camera off -->
+        <video
+          id="local-video-el"
+          #localVideo
+          class="local-video-mirror"
+          autoplay
+          muted
+          playsinline
+          [style.display]="isVideoOn ? 'block' : 'none'"
+        ></video>
+        @if (!isVideoOn) {
+          <div class="video-off-overlay">
+            <div class="avatar-lg">{{ auth.currentUser?.displayName?.charAt(0) || '?' }}</div>
+            <span class="avatar-name-lg">Camera Off</span>
+          </div>
+        }
+        <div class="tile-footer">
+          <div class="tile-name">
+            <span class="name-text">You</span>
+            @if (isHost()) {
+              <span class="host-tag">Host</span>
+            }
+          </div>
+          <div class="tile-indicators">
+            @if (!isAudioOn) { <span class="mic-off-badge">🔇</span> }
+          </div>
+        </div>
+      </div>
+
+      <!-- Remote Video Tiles -->
+      @for (peer of remotePeers; track peer.connectionId) {
+        <div class="video-tile">
+          <!-- Video element ALWAYS present for stream attachment -->
+          <video
+            [id]="'remote-video-' + peer.connectionId"
+            autoplay
+            playsinline
+            [style.display]="peer.stream ? 'block' : 'none'"
+          ></video>
+          @if (!peer.stream || !peer.isVideoOn) {
+            <div class="video-off-overlay">
+              <div class="avatar-lg">{{ peer.displayName?.charAt(0) || '?' }}</div>
+              <span class="avatar-name-lg">{{ peer.stream ? 'Camera Off' : 'Connecting...' }}</span>
+            </div>
+          }
+          <div class="tile-footer">
+            <div class="tile-name">
+              <span class="name-text">{{ peer.displayName }}</span>
+            </div>
+            <div class="tile-indicators">
+              @if (!peer.isAudioOn) { <span class="mic-off-badge">🔇</span> }
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Chat Panel -->
+    @if (showChat) {
+      <div class="side-panel">
+        <div class="panel-header">
+          <h3>💬 Chat</h3>
+          <button class="panel-close" (click)="showChat = false">✕</button>
+        </div>
+        <div class="chat-messages">
+          @for (msg of messages; track msg.id) {
+            <div class="chat-bubble" [class.own]="msg.senderId === auth.currentUser?.id">
+              <span class="bubble-sender">{{ msg.senderName }}</span>
+              <p class="bubble-text">{{ msg.content }}</p>
+              <span class="bubble-time">{{ msg.sentAt | date:'shortTime' }}</span>
+            </div>
+          }
+          @if (messages.length === 0) {
+            <div class="chat-empty">
+              <span>💬</span>
+              <p>No messages yet.<br/>Be the first to say hello!</p>
+            </div>
+          }
+        </div>
+        <div class="chat-compose">
+          <input
+            type="text"
+            [(ngModel)]="newMessage"
+            placeholder="Type a message..."
+            (keyup.enter)="sendMessage()"
+          />
+          <button class="send-btn" (click)="sendMessage()" [disabled]="!newMessage.trim()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- Participants Panel -->
+    @if (showParticipants) {
+      <div class="side-panel">
+        <div class="panel-header">
+          <h3>👥 Participants ({{ getTotalParticipants() }})</h3>
+          <button class="panel-close" (click)="showParticipants = false">✕</button>
+        </div>
+        <div class="participants-list">
+          <div class="participant-row">
+            <div class="p-left">
+              <div class="p-avatar-sm">{{ auth.currentUser?.displayName?.charAt(0) || '?' }}</div>
+              <div class="p-info">
+                <span class="p-name">{{ auth.currentUser?.displayName }} (You)</span>
+                <span class="p-role">{{ isHost() ? 'Host' : 'Participant' }}</span>
+              </div>
+            </div>
+            <div class="p-status">
+              <span [class.on]="isAudioOn" [class.off]="!isAudioOn">{{ isAudioOn ? '🎤' : '🔇' }}</span>
+              <span [class.on]="isVideoOn" [class.off]="!isVideoOn">{{ isVideoOn ? '📷' : '📷' }}</span>
+            </div>
+          </div>
+          @for (p of participants; track p.id) {
+            @if (p.userId !== auth.currentUser?.id) {
+              <div class="participant-row">
+                <div class="p-left">
+                  <div class="p-avatar-sm">{{ p.displayName?.charAt(0) || '?' }}</div>
+                  <div class="p-info">
+                    <span class="p-name">{{ p.displayName }}</span>
+                    <span class="p-role">{{ p.role }}</span>
+                  </div>
+                </div>
+                <div class="p-right">
+                  @if (isHost()) {
+                    <button class="action-btn mute" (click)="muteParticipant(p.userId)" title="Mute">🔇</button>
+                    <button class="action-btn remove" (click)="removeParticipant(p.userId)" title="Remove">✕</button>
+                  }
+                </div>
+              </div>
+            }
+          }
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Control Bar -->
+  <div class="control-bar">
+    <div class="controls-section left">
+      <span class="info-text">{{ meeting?.meetingCode }}</span>
+    </div>
+    <div class="controls-section center">
+      <button
+        class="ctrl-btn" [class.off]="!isAudioOn"
+        (click)="toggleAudio()" title="{{ isAudioOn ? 'Mute' : 'Unmute' }}">
+        <span class="ctrl-icon">{{ isAudioOn ? '🎤' : '🔇' }}</span>
+        <span class="ctrl-label">{{ isAudioOn ? 'Mute' : 'Unmute' }}</span>
+      </button>
+      <button
+        class="ctrl-btn" [class.off]="!isVideoOn"
+        (click)="toggleVideo()" title="{{ isVideoOn ? 'Stop Video' : 'Start Video' }}">
+        <span class="ctrl-icon">📷</span>
+        <span class="ctrl-label">{{ isVideoOn ? 'Stop' : 'Start' }}</span>
+      </button>
+      <button
+        class="ctrl-btn" [class.active]="isScreenSharing"
+        (click)="toggleScreenShare()" title="Screen Share">
+        <span class="ctrl-icon">🖥️</span>
+        <span class="ctrl-label">Share</span>
+      </button>
+      <div class="ctrl-divider"></div>
+      <button
+        class="ctrl-btn" [class.active]="showParticipants"
+        (click)="showParticipants = !showParticipants; showChat = false" title="Participants">
+        <span class="ctrl-icon">👥</span>
+        <span class="ctrl-label">People</span>
+      </button>
+      <button
+        class="ctrl-btn" [class.active]="showChat"
+        (click)="showChat = !showChat; showParticipants = false" title="Chat">
+        <span class="ctrl-icon">💬</span>
+        <span class="ctrl-label">Chat</span>
+      </button>
+      <div class="ctrl-divider"></div>
+      <button class="ctrl-btn leave-btn" (click)="leaveMeeting()" title="Leave Meeting">
+        <span class="ctrl-icon">📞</span>
+        <span class="ctrl-label">Leave</span>
+      </button>
+      @if (isHost()) {
+        <button class="ctrl-btn end-btn" (click)="endMeeting()" title="End Meeting for All">
+          <span class="ctrl-label">End Meeting</span>
+        </button>
+      }
+    </div>
+    <div class="controls-section right">
+      <span class="info-text">{{ elapsedTime }}</span>
+    </div>
+  </div>
+</div>

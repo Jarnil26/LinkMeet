@@ -1,0 +1,35 @@
+# .gitignore for .NET and Angular
+
+# .NET
+[Bb]in/
+[Oo]bj/
+*.user
+*.userosscache
+*.sln.docstates
+.vs/
+.vscode/
+bin/
+obj/
+*.db
+*.db-shm
+*.db-wal
+
+# Angular
+node_modules/
+dist/
+.angular/
+.npm/
+*.log
+.DS_Store
+
+# Environment
+.env
+.env.*
+! .env.example
+
+# IDE
+.idea/
+*.swp
+*.bak
+*.tmp
+/tmp/
