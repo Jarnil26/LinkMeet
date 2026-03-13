@@ -12,10 +12,13 @@ using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Database - SQLite
+// Database - MongoDB
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")
-        ?? "Data Source=linkmeet.db"));
+{
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "mongodb://localhost:27017/";
+    var databaseName = builder.Configuration.GetConnectionString("DatabaseName") ?? "LinkMeetDb";
+    options.UseMongoDB(connectionString, databaseName);
+});
 
 // Repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -86,12 +89,15 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Auto-create database
+// MongoDB handles creation lazily on first write.
+// EnsureCreated is removed to avoid metadata permission issues on Atlas.
+/*
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.EnsureCreated();
 }
+*/
 
 if (app.Environment.IsDevelopment())
 {

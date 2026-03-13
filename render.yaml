@@ -1,0 +1,33 @@
+services:
+  # Backend API
+  - type: web
+    name: linkmeet-api
+    runtime: docker
+    plan: free
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ConnectionStrings__DefaultConnection
+        sync: false # Set this in Render Dashboard (MongoDB Atlas URL)
+      - key: ConnectionStrings__DatabaseName
+        value: LinkMeetDb
+      - key: Jwt__Key
+        sync: false # Set this in Render Dashboard
+      - key: Jwt__Issuer
+        value: LinkMeet
+      - key: Jwt__Audience
+        value: LinkMeetApp
+
+  # Frontend Angular
+  - type: static
+    name: linkmeet-client
+    runtime: static
+    buildCommand: "cd client && npm install && npm run build"
+    staticPublishPath: "client/dist/client/browser"
+    envVars:
+      - key: SKIP_INSTALL_DEPS
+        value: "false"
+    routes:
+      - type: rewrite
+        source: "/*"
+        destination: "/index.html"

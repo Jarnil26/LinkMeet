@@ -102,8 +102,20 @@ public class ParticipantRepository : IParticipantRepository
     public async Task<Participant?> GetAsync(Guid meetingId, Guid userId) =>
         await _db.Participants.FirstOrDefaultAsync(p => p.MeetingId == meetingId && p.UserId == userId);
 
-    public async Task<List<Participant>> GetByMeetingIdAsync(Guid meetingId) =>
-        await _db.Participants.Include(p => p.User).Where(p => p.MeetingId == meetingId && p.LeftAt == null).ToListAsync();
+    public async Task<List<Participant>> GetByMeetingIdAsync(Guid meetingId)
+    {
+        var participants = await _db.Participants.Where(p => p.MeetingId == meetingId && p.LeftAt == null).ToListAsync();
+        var userIds = participants.Select(p => p.UserId).Distinct().ToList();
+        var users = await _db.Users.Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id);
+        foreach (var p in participants)
+        {
+            if (users.TryGetValue(p.UserId, out var user))
+            {
+                p.User = user;
+            }
+        }
+        return participants;
+    }
 
     public async Task<Participant> CreateAsync(Participant participant)
     {
@@ -134,11 +146,26 @@ public class ChatMessageRepository : IChatMessageRepository
     private readonly AppDbContext _db;
     public ChatMessageRepository(AppDbContext db) => _db = db;
 
-    public async Task<List<ChatMessage>> GetByMeetingIdAsync(Guid meetingId) =>
-        await _db.ChatMessages.Include(c => c.Sender)
+    public async Task<List<ChatMessage>> GetByMeetingIdAsync(Guid meetingId)
+    {
+        var messages = await _db.ChatMessages
             .Where(c => c.MeetingId == meetingId)
             .OrderBy(c => c.SentAt)
             .ToListAsync();
+
+        var senderIds = messages.Select(m => m.SenderId).Distinct().ToList();
+        var senders = await _db.Users.Where(u => senderIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id);
+
+        foreach (var message in messages)
+        {
+            if (senders.TryGetValue(message.SenderId, out var sender))
+            {
+                message.Sender = sender;
+            }
+        }
+
+        return messages;
+    }
 
     public async Task<ChatMessage> CreateAsync(ChatMessage message)
     {
