@@ -19,9 +19,8 @@ services:
         value: LinkMeetApp
 
   # Frontend Angular
-  - type: static
+  - type: static_site
     name: linkmeet-client
-    runtime: static
     buildCommand: "cd client && npm install && npm run build"
     staticPublishPath: "client/dist/client/browser"
     envVars:

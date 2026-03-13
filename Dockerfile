@@ -22,8 +22,8 @@ FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
 COPY --from=build /app .
 
-# Render uses $PORT, ASP.NET uses ASPNETCORE_URLS
-ENV ASPNETCORE_URLS=http://+:10000
+# Render uses $PORT, ASP.NET Core 8+ uses ASPNETCORE_HTTP_PORTS
+ENV ASPNETCORE_HTTP_PORTS=10000
 EXPOSE 10000
 
 ENTRYPOINT ["dotnet", "LinkMeet.API.dll"]
