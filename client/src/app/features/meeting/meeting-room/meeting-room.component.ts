@@ -65,7 +65,7 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
         audio: { echoCancellation: true, noiseSuppression: true }
       });
       this.localStreamReady = true;
-      this.webrtcService.setLocalStream(this.localStream);
+      await this.webrtcService.setLocalStream(this.localStream);
       this.cdr.detectChanges(); // Trigger view update so #localVideo exists
 
       // Now attach to video element — use setTimeout to ensure ViewChild is resolved
@@ -170,11 +170,9 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
 
   async toggleScreenShare(): Promise<void> {
     if (this.isScreenSharing) {
-      this.screenStream?.getTracks().forEach(t => t.stop());
-      this.screenStream = null;
       this.isScreenSharing = false;
       if (this.localStream) {
-        this.webrtcService.setLocalStream(this.localStream);
+        await this.webrtcService.setLocalStream(this.localStream);
         this.attachLocalStream();
       }
       await this.signalR.stopScreenShare(this.meetingId);
@@ -182,17 +180,17 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
       try {
         this.screenStream = await (navigator.mediaDevices as any).getDisplayMedia({ video: true });
         this.isScreenSharing = true;
-        this.webrtcService.setLocalStream(this.screenStream!);
+        await this.webrtcService.setLocalStream(this.screenStream!);
         const el = document.getElementById('local-video-el') as HTMLVideoElement;
         if (el) el.srcObject = this.screenStream;
         await this.signalR.startScreenShare(this.meetingId);
-        this.screenStream!.getVideoTracks()[0].onended = () => {
+        this.screenStream!.getVideoTracks()[0].onended = async () => {
           this.isScreenSharing = false;
           if (this.localStream) {
-            this.webrtcService.setLocalStream(this.localStream);
+            await this.webrtcService.setLocalStream(this.localStream);
             this.attachLocalStream();
           }
-          this.signalR.stopScreenShare(this.meetingId);
+          await this.signalR.stopScreenShare(this.meetingId);
         };
       } catch {
         console.warn('Screen share cancelled');

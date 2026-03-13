@@ -120,17 +120,20 @@ export class WebRTCService {
     });
   }
 
-  setLocalStream(stream: MediaStream): void {
+  async setLocalStream(stream: MediaStream): Promise<void> {
     this.localStream = stream;
-    // Add tracks to existing peer connections
+    // Update tracks in existing peer connections using replaceTrack for seamless switching
+    const tracks = stream.getTracks();
     for (const [connId, pc] of this.peerConnections) {
-      stream.getTracks().forEach(track => {
-        const senders = pc.getSenders();
-        const existing = senders.find(s => s.track?.kind === track.kind);
-        if (!existing) {
+      const senders = pc.getSenders();
+      for (const track of tracks) {
+        const sender = senders.find(s => s.track?.kind === track.kind);
+        if (sender) {
+          await sender.replaceTrack(track);
+        } else {
           pc.addTrack(track, stream);
         }
-      });
+      }
     }
   }
 
